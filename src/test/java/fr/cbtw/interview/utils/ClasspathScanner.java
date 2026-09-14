@@ -17,7 +17,7 @@ public final class ClasspathScanner {
     private ClasspathScanner() {
     }
 
-    /** Retourne toutes les classes chargeables trouvées dans le package donné (non récursif sur les sous-packages). */
+    /** Retourne toutes les classes chargeables trouvées dans le package donné, y compris dans ses sous-packages (scan récursif). */
     public static List<Class<?>> findClassesInPackage(String packageName) {
         List<Class<?>> classes = new ArrayList<>();
         String path = packageName.replace('.', '/');
@@ -50,8 +50,7 @@ public final class ClasspathScanner {
         }
         for (File file : files) {
             if (file.isDirectory()) {
-                // Sous-packages ignorés volontairement : findClassesInPackage("domain.model")
-                // doit être appelé explicitement pour scanner ce niveau précis.
+                classes.addAll(scanDirectory(file, packageName + "." + file.getName()));
                 continue;
             }
             if (file.getName().endsWith(".class")) {
@@ -72,10 +71,8 @@ public final class ClasspathScanner {
                 while (entries.hasMoreElements()) {
                     JarEntry entry = entries.nextElement();
                     String name = entry.getName();
-                    boolean isDirectClassInPackage = name.startsWith(path + "/")
-                        && name.endsWith(".class")
-                        && name.indexOf('/', path.length() + 1) == -1;
-                    if (isDirectClassInPackage) {
+                    boolean isClassUnderPackage = name.startsWith(path + "/") && name.endsWith(".class");
+                    if (isClassUnderPackage) {
                         String className = name.replace('/', '.').substring(0, name.length() - 6);
                         loadClass(className).ifPresent(classes::add);
                     }

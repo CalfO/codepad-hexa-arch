@@ -3,7 +3,9 @@ package fr.cbtw.interview.legacy;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ContractClauseService {
+import fr.cbtw.interview.application.port.in.ContractClauseUseCase;
+
+public class ContractClauseService implements ContractClauseUseCase {
     static List<String> savedContracts = new ArrayList<>();
 
     public String buildContractSummary(double loanAmount, int durationMonths, String riskProfile,

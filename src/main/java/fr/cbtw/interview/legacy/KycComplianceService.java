@@ -4,7 +4,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-public class KycComplianceService {
+import fr.cbtw.interview.application.port.in.KycComplianceUseCase;
+
+public class KycComplianceService implements KycComplianceUseCase {
     static List<String> savedChecks = new ArrayList<>();
 
     public String checkCompliance(String documentType, LocalDate issueDate, LocalDate expiryDate,

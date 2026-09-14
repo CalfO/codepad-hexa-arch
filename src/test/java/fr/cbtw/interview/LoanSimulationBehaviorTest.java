@@ -3,11 +3,16 @@ package fr.cbtw.interview;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 
 import fr.cbtw.interview.application.port.in.LoanSimulationUseCase;
 import fr.cbtw.interview.utils.ImplementationLoader;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+@DisplayName("Simulation de prêt")
 public class LoanSimulationBehaviorTest {
     private LoanSimulationUseCase loadCandidateImplementation() {
         // Le candidat doit annoter/enregistrer son implémentation, ou on la charge
@@ -17,6 +22,7 @@ public class LoanSimulationBehaviorTest {
     }
 
     @Test
+    @DisplayName("Un emprunteur éligible est approuvé")
     void approvesEligibleApplicant() {
         LoanSimulationUseCase useCase = loadCandidateImplementation();
         String result = useCase.simulate(150000, 3.5, 240, 35, 3000);
@@ -24,6 +30,7 @@ public class LoanSimulationBehaviorTest {
     }
 
     @Test
+    @DisplayName("Un emprunteur mineur est rejeté")
     void rejectsUnderageApplicant() {
         LoanSimulationUseCase useCase = loadCandidateImplementation();
         String result = useCase.simulate(150000, 3.5, 240, 17, 3000);
@@ -33,6 +40,7 @@ public class LoanSimulationBehaviorTest {
     // Previously untested: the debt-ratio-too-high branch was never exercised by the
     // original two tests.
     @Test
+    @DisplayName("Un emprunteur avec un taux d'endettement excessif est rejeté")
     void rejectsApplicantWithExcessiveDebtRatio() {
         LoanSimulationUseCase useCase = loadCandidateImplementation();
         String result = useCase.simulate(400000, 4.5, 240, 35, 1500);
@@ -45,6 +53,7 @@ public class LoanSimulationBehaviorTest {
     // in that (surprising, arguably buggy) legacy behavior rather than "fixing" it, per the
     // exercise's no-behavior-change constraint. See SOLUTION.md.
     @Test
+    @DisplayName("Un taux d'intérêt à 0 % produit une mensualité indéfinie (NaN), conformément au legacy")
     void zeroInterestRateProducesUndefinedMonthlyPayment() {
         LoanSimulationUseCase useCase = loadCandidateImplementation();
         String result = useCase.simulate(150000, 0, 240, 35, 3000);

@@ -3,7 +3,9 @@ package fr.cbtw.interview.legacy;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LoanSimulationService {
+import fr.cbtw.interview.application.port.in.LoanSimulationUseCase;
+
+public class LoanSimulationService implements LoanSimulationUseCase {
     static List<String> savedSimulations = new ArrayList<>();
 
     public String simulate(double amount, double rate, int months, int applicantAge, double monthlyIncome) {

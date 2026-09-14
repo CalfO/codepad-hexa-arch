@@ -1,17 +1,14 @@
 # Solution de référence
 
-Ce document explique les choix de conception de la migration hexagonale fournie dans `src/main/java/domain`, `src/main/java/application/port/out` et `src/main/java/infrastructure`, pour les trois services legacy (`ContractClauseService`, `KycComplianceService`, `LoanSimulationService`). Il sert de corrigé/baseline pour évaluer les candidats — pas de référence à distribuer telle quelle.
+Ce document explique les choix de conception de la migration hexagonale fournie dans `src/main/java/fr/cbtw/interview/domain`, `src/main/java/fr/cbtw/interview/application/port/out` et `src/main/java/fr/cbtw/interview/infrastructure`, pour les trois services legacy (`ContractClauseService`, `KycComplianceService`, `LoanSimulationService`). Il sert de corrigé/baseline pour évaluer les candidats — pas de référence à distribuer telle quelle.
 
-## Pourquoi les packages sont "à plat" et sans préfixe `fr.cbtw.interview`
+## Packages nichés sous `fr.cbtw.interview`
 
-`src/test/java/fr/cbtw/interview/utils/ClasspathScanner.java` et `ImplementationLoader.java` (fournis, à ne pas modifier) scannent des packages **littéraux et non récursifs** :
+`src/test/java/fr/cbtw/interview/utils/ClasspathScanner.java` scanne désormais un package **et tous ses sous-packages, récursivement**. `ImplementationLoader.findImplementationOf(port)` s'en sert pour chercher une implémentation sous le package par défaut `fr.cbtw.interview.domain` (plus besoin qu'elle vive exactement dans `domain.service`), et `HexagonalArchitectureTest` scanne `domain`/`domain.model` de la même façon. Une première version de cette solution avait dû placer `domain.model`/`domain.service` en top-level (sans préfixe) car le harness pointait vers des chemins non préfixés — incohérent avec le reste du projet (les ports d'entrée fournis vivent sous `fr.cbtw.interview.application.port.in.*`). Le harness a depuis été corrigé pour chercher sous `fr.cbtw.interview.domain` (et sous-packages), donc `domain`, `application.port.out` et `infrastructure` vivent maintenant sous `fr.cbtw.interview`, comme le reste du code.
 
-- `ImplementationLoader.findImplementationOf(port)` cherche une implémentation dans le package `domain.service`.
-- `HexagonalArchitectureTest` scanne `domain` et `domain.model`.
+Le scan étant maintenant récursif, `HexagonalArchitectureTest.domainMustNotDependOnInfrastructure()` trouve bien toutes les classes de `domain.model`/`domain.service` (et de tout sous-package qu'un candidat ajouterait) et vérifie effectivement l'absence de dépendance vers `infrastructure.*` — ce n'est plus un test qui passe vide/trivialement comme avant ce changement de harness.
 
-Ces chemins ne sont **pas** préfixés par `fr.cbtw.interview`, contrairement aux ports d'entrée déjà fournis (`fr.cbtw.interview.application.port.in.*`, à ne pas déplacer). Toute implémentation candidate doit donc vivre dans les packages top-level `domain.model` / `domain.service` pour être trouvée par réflexion — sans quoi les tests échouent silencieusement avec une `AssertionError` explicite ("Aucune classe ... n'implémente ..."). C'est un piège volontaire de l'exercice : il faut lire les utilitaires de test avant d'implémenter.
-
-Par cohérence avec cette contrainte (et avec les chemins du README, eux aussi non préfixés : `src/domain/`, `src/application/port/`, `src/infrastructure/`), `application.port.out` et `infrastructure` sont également top-level dans cette solution. Dans un vrai projet à plusieurs bounded contexts, on sous-nommerait plutôt `domain.model.contract`, `domain.model.kyc`, etc. — ici, la contrainte du harness l'en empêche (scan non récursif), d'où le choix assumé d'un seul package `domain.model` partagé, avec des noms de classes préfixés par contexte (`Contract*`, `Kyc*`, `LoanSimulation*`) pour éviter toute collision.
+Cette solution garde `domain.model` et `domain.service` comme packages plats, partagés entre les trois contextes métier, avec des noms de classes préfixés par contexte (`Contract*`, `Kyc*`, `LoanSimulation*`) pour éviter toute collision — un choix qui reste valide et simple pour un exercice à trois services. Le scan étant maintenant récursif, rien n'empêche un sous-découpage par bounded context (`domain.model.contract`, `domain.model.kyc`, etc., ou `domain.contract.model`/`domain.contract.service`) ; ce n'est plus une contrainte du harness mais un choix d'organisation laissé au candidat (cf. README).
 
 ## Pourquoi chaque service de domaine a un constructeur sans argument
 
