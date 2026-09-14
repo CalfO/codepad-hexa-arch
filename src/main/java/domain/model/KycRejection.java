@@ -1,0 +1,9 @@
+package domain.model;
+
+public enum KycRejection {
+    MISSING_DOCUMENT_TYPE,
+    UNSUPPORTED_DOCUMENT_TYPE,
+    INCOMPLETE_PROFILE,
+    EXPIRED_DOCUMENT,
+    INVALID_ISSUE_DATE
+}
