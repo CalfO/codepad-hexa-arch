@@ -23,6 +23,8 @@ pom.xml
 .editorconfig
 README.md
 LICENSE
+src/main/java/fr/cbtw/interview/application/port/out/
+src/main/java/fr/cbtw/interview/infrastructure/
 src/test/java/fr/cbtw/interview/HexagonalArchitectureTest.java
 src/test/java/fr/cbtw/interview/utils/ClasspathScanner.java
 src/test/java/fr/cbtw/interview/utils/ImplementationLoader.java
@@ -36,15 +38,13 @@ src/main/java/fr/cbtw/interview/application/port/in/<Service>UseCase.java
 src/test/java/fr/cbtw/interview/<Service>BehaviorTest.java
 ```
 
-Rien d'autre sous `src/main` ou `src/test` ne doit exister dans le pad : le candidat crée lui-même `domain/`, `application/port/out/` et `infrastructure/` pendant l'exercice.
+Le candidat reçoit déjà les ports de sortie et l'infrastructure de base. Il n'a donc pas besoin de réécrire ces couches pour l'exercice : son travail se concentre principalement sur le domaine métier et la validation des cas limites.
 
 ## 3. Fichiers à supprimer / à ne jamais copier
 
-- **La solution de référence entière**, quelle que soit la déclinaison choisie :
+- **La solution de référence du cœur métier**, quelle que soit la déclinaison choisie :
   ```
   src/main/java/fr/cbtw/interview/domain/
-  src/main/java/fr/cbtw/interview/application/port/out/
-  src/main/java/fr/cbtw/interview/infrastructure/
   ```
 - **Les deux déclinaisons non retenues** (legacy, port `in`, test de comportement) — cf. les deux lignes non choisies du tableau.
 - **Les documents internes à l'auteur** (rédigés pour préparer/évaluer l'exercice, pas pour le candidat) :
@@ -58,6 +58,8 @@ Rien d'autre sous `src/main` ou `src/test` ne doit exister dans le pad : le cand
   target/
   .git/
   ```
+
+Les dossiers `application/port/out` et `infrastructure` restent présents dans le pad candidat, car ils sont fournis pour simplifier le test et maintenir le sujet focalisé sur le métier.
 
 ## 4. Vérification après montage du pad
 
