@@ -1,7 +1,6 @@
 package fr.cbtw.interview;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
 
@@ -33,7 +32,7 @@ public class KycComplianceBehaviorTest {
             2500,
             false
         );
-        assertTrue(result.contains("APPROVED") && !result.contains("MANUAL_REVIEW"));
+        assertEquals("STATUS:APPROVED;RISK:0", result);
     }
 
     @Test
@@ -49,7 +48,7 @@ public class KycComplianceBehaviorTest {
             5000,
             true
         );
-        assertTrue(result.contains("MANUAL_REVIEW"));
+        assertEquals("STATUS:MANUAL_REVIEW;RISK:50", result);
     }
 
     @Test
@@ -65,42 +64,6 @@ public class KycComplianceBehaviorTest {
             3000,
             false
         );
-        assertTrue(result.contains("REJECTED"));
-    }
-
-    // Previously untested: a missing document type must be rejected explicitly, before any
-    // other field is even considered.
-    @Test
-    @DisplayName("Un type de document manquant est rejeté")
-    void missingDocumentTypeIsRejected() {
-        KycComplianceUseCase useCase = loadCandidateImplementation();
-        String result = useCase.checkCompliance(
-            "",
-            LocalDate.now().minusYears(1),
-            LocalDate.now().plusYears(1),
-            "Jean Dupont",
-            "12 rue de la Paix, Paris",
-            2500,
-            false
-        );
-        assertEquals("ERROR: missing document type", result);
-    }
-
-    // Previously untested boundary: a non-positive declared income alone (score 20, no PEP)
-    // sits exactly on the monitoring threshold, not high enough for manual review.
-    @Test
-    @DisplayName("Un revenu déclaré nul déclenche une approbation sous surveillance (score au seuil de 20)")
-    void zeroDeclaredIncomeTriggersApprovedWithMonitoring() {
-        KycComplianceUseCase useCase = loadCandidateImplementation();
-        String result = useCase.checkCompliance(
-            "ID_CARD",
-            LocalDate.now().minusYears(2),
-            LocalDate.now().plusYears(3),
-            "Jean Dupont",
-            "12 rue de la Paix, Paris",
-            0,
-            false
-        );
-        assertEquals("STATUS:APPROVED_WITH_MONITORING;RISK:20", result);
+        assertEquals("REJECTED: expired document", result);
     }
 }

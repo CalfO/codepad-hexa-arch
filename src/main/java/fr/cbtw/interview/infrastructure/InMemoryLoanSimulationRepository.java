@@ -1,16 +1,19 @@
 package fr.cbtw.interview.infrastructure;
 
-import fr.cbtw.interview.application.port.out.LoanSimulationRepository;
-import fr.cbtw.interview.domain.model.LoanSimulationOutcome;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public final class InMemoryLoanSimulationRepository implements LoanSimulationRepository {
-    private final List<LoanSimulationOutcome> savedSimulations = new ArrayList<>();
+import fr.cbtw.interview.application.port.out.LoanSimulationRepository;
+
+public final class InMemoryLoanSimulationRepository<T> implements LoanSimulationRepository<T> {
+    private final List<T> saved = new ArrayList<>();
 
     @Override
-    public void save(LoanSimulationOutcome outcome) {
-        savedSimulations.add(outcome);
+    public void save(T simulation) {
+        saved.add(simulation);
+    }
+
+    public List<T> saved() {
+        return List.copyOf(saved);
     }
 }

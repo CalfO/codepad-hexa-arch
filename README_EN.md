@@ -1,121 +1,45 @@
-# Exercise — Migrating a business module to a hexagonal architecture
+# Codepad — hexagonal migration (evaluator repository)
 
-**Duration: 60 minutes**
+> **Internal repository.** It contains the reference solutions and the evaluation tests: it must stay **private**. A candidate never receives this repository, only a pad built with `tools/build-pad.sh` (see [NOTICE.md](NOTICE.md), in French).
 
-## Context
+Interview exercise: migrate a legacy service to a hexagonal / DDD architecture at functional parity in 60 minutes, then discuss it with the candidate for 20 minutes.
 
-You join a team in charge of evolving a legacy business application. The code below works in production, but it mixes several responsibilities (validation, business calculation, persistence) in a single class. Your mission is to evolve it toward a hexagonal architecture without changing its functional behavior.
+## Variants
 
-## File to migrate
+| Key | Domain | Legacy service | Level |
+|---|---|---|---|
+| `loan` | Lending | `LoanSimulationService` | standard |
+| `kyc` | Compliance | `KycComplianceService` | standard |
+| `contract` | Lending | `ContractClauseService` | standard |
+| `payment` | Cash Management | `PaymentOrderValidationService` | standard |
+| `sweeping` | Cash Management | `CashSweepingService` | standard |
+| `funds` | Cash Management | `FundsAvailabilityService` | standard |
+| `payment-senior` | Cash Management | `PaymentOrderProcessingService` | senior / tech lead |
 
-The code to evolve is here:
+## Layout
 
-```text
-src/main/java/fr/cbtw/interview/legacy/<ServiceName>.java
+| Path | Content | Shipped to the candidate |
+|---|---|---|
+| `src/main/java/.../legacy/` | Legacy services, the behavioral reference (never modify an existing one) | the variant's one |
+| `src/main/java/.../application/port/in/` | Input ports | the variant's one |
+| `src/main/java/.../application/port/out/*.java` | Generic output ports of the standard variants | the variant's one (standard) |
+| `src/main/java/.../infrastructure/InMemory*.java` | In-memory adapters for those ports | the variant's one (standard) |
+| `src/main/java/.../domain/<context>/` | Reference solution: domain | no |
+| `src/main/java/.../application/service/` | Reference solution: application services | no |
+| `src/main/java/.../{application/port/out,infrastructure}/paymentprocessing/` | Senior solution: output ports and adapters | no |
+| `src/test/java/.../*BehaviorTest`, `*ParityTest`, `*CutOffTest` | Candidate tests | the variant's ones |
+| `src/test/java/.../evaluation/` | Evaluator tests (traps, bonus, persistence) | no |
+| `src/test/java/.../utils/`, `HexagonalArchitectureTest` | Test harness | yes |
+| `pad/` | Statements (templates, FR and EN for standard), `TRANSPARENCE.md`, `DECISIONS.md` | rendered by the script |
+| `tools/build-pad.sh` | Builds and verifies a pad | no |
+| `NOTICE.md`, `SOLUTION.md`, `CLAUDE.md` | Internal documentation | no |
+
+## Commands
+
+```
+mvn test                                                  # all solutions + all tests (evaluation included)
+tools/build-pad.sh payment /path/to/pad --verify          # builds and checks a candidate pad
+tools/build-pad.sh payment /tmp/check --with-solution --verify   # checks the solution passes on its own in the pad
 ```
 
-> Replace `<ServiceName>` with the real file name provided in this pad (visible in the left-side tree).
-
-**Do not modify this file.** It serves as the behavioral reference: the tests in `src/test/java/fr/cbtw/interview/` run against it indirectly (via the use cases) and must continue to pass once your refactoring is complete (whether the final code calls the new architecture or not).
-
-## What is a hexagonal architecture?
-
-A hexagonal architecture, also called ports and adapters, aims to separate the business core from anything technical or external.
-
-The idea is simple:
-
-- the business domain contains the logic of the company (rules, calculations, decisions);
-- the ports describe what the domain needs or exposes without depending on a specific technology;
-- the adapters implement these ports with concrete details (database, in-memory storage, API, etc.).
-
-Instead of having code where everything is mixed together, we isolate responsibilities:
-
-- business code does not depend on implementation details;
-- infrastructure can change without compromising the business logic;
-- tests can focus on business behavior without depending on the database or framework.
-
-In practice, we often aim for layers such as:
-
-- `domain`: business objects and decision logic;
-- `application.port.in`: use cases / system inputs;
-- `application.port.out`: output / persistence interfaces;
-- `infrastructure`: concrete implementations of these ports;
-- `test`: verification of expected behavior.
-
-## Expected file structure
-
-The project follows the standard Maven layout, with the root package `fr.cbtw.interview`:
-
-```text
-src/
-  main/
-    java/
-      fr/
-        cbtw/
-          interview/
-            application/
-              port/
-                in/
-                out/
-            domain/
-              model/
-              service/
-            infrastructure/
-  test/
-    java/
-      fr/
-        cbtw/
-          interview/
-```
-
-The business logic should mainly live in `fr.cbtw.interview.domain`, while technical implementations should remain in `fr.cbtw.interview.infrastructure`.
-
-In short:
-
-- `domain` = what the company knows how to do;
-- `application.port.in` = what the application can receive as a command or action;
-- `application.port.out` = what the domain needs to call to produce output or save data;
-- `infrastructure` = the concrete way to handle these outputs (memory, database, etc.).
-
-## What you must produce
-
-The project follows the standard Maven layout (`src/main/java`, `src/test/java`) with package root `fr.cbtw.interview`. The input ports, output ports, and basic infrastructure are already provided in the candidate pad to simplify the exercise and keep the focus on the business core:
-
-1. **The domain** (package `fr.cbtw.interview.domain`)
-   - The business concepts from the legacy file, modeled as Value Objects or Entities (no naked `String`/`double` used to represent a business concept).
-   - The extracted business logic from the legacy file, implemented as a domain service that implements the corresponding use case (`fr.cbtw.interview.application.port.in.*`).
-   - This package must not depend on any technical detail: no framework annotations, no concrete persistence implementation (nothing in `fr.cbtw.interview.infrastructure.*`).
-   - You can organize subpackages under `domain` freely (for example `domain.model` / `domain.service`, or a split by subdomain such as `domain.contract`, `domain.kyc`...) — only the prefix `fr.cbtw.interview.domain` matters for the tests, which scan recursively through all subpackages.
-
-2. **The output ports** (package `fr.cbtw.interview.application.port.out`)
-   - The output interfaces are already passed to the candidate to keep the test focused on the migration of the business core.
-   - These are the persistence or external communication obligations that the domain expects without depending on a concrete implementation.
-
-3. **The infrastructure** (package `fr.cbtw.interview.infrastructure`)
-   - Concrete adapters (for example in-memory ones) are also provided to the candidate to simplify testing.
-   - The goal is mainly to validate the organization of the domain and the business logic without wasting time on repository or adapter implementation details.
-
-4. **The tests** (`src/test/java/fr/cbtw/interview/`)
-   - The tests already present must continue to pass.
-   - Add at least one test covering a business edge case that was not already covered in the legacy code.
-
-> Important: the exercise is intended to validate separation into a hexagonal architecture and the business logic. The details of output ports and infrastructure are not the central point of the test, which is why they are provided to the candidate.
-
-## Instructions
-
-- You are not required to migrate everything if time is short. A coherent architecture on a reduced scope is better than a partial and inconsistent refactor across the entire file.
-- If you make trade-offs (unhandled portion, assumed simplification), note them in a comment at the relevant location — you are not asked to finish everything, but you should be able to explain what is missing and why.
-- The naming of your classes and methods should reflect the business vocabulary of the domain, not generic technical terms.
-- Your domain service must remain instantiable without arguments (a no-arg constructor that defaults to your in-memory adapter): this is what the test harness uses to find your implementation. Nothing prevents you from also adding an explicit constructor with output-port injection.
-
-## Deliverable
-
-Your goal is to produce a clean business-driven design where the legacy behavior is preserved, the business logic is isolated, and the architecture clearly respects the principles of ports and adapters.
-
-The main evaluation criteria are:
-
-- correct separation of responsibilities;
-- business logic extracted from the legacy module;
-- domain model expressed with meaningful types rather than raw primitives;
-- no technical leakage into the business layer;
-- preservation of existing behavior while adding one relevant edge-case test.
+Java 21, JUnit 5.10.2, Maven.

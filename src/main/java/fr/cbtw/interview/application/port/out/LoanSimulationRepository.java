@@ -1,7 +1,10 @@
 package fr.cbtw.interview.application.port.out;
 
-import fr.cbtw.interview.domain.model.LoanSimulationOutcome;
-
-public interface LoanSimulationRepository {
-    void save(LoanSimulationOutcome outcome);
+/**
+ * Port de sortie : enregistre une simulation de prêt acceptée.
+ *
+ * @param <S> le type métier qui représente une simulation enregistrée — à vous de le définir.
+ */
+public interface LoanSimulationRepository<S> {
+    void save(S simulation);
 }

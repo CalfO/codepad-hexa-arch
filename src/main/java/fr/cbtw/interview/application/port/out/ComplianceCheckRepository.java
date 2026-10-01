@@ -1,7 +1,10 @@
 package fr.cbtw.interview.application.port.out;
 
-import fr.cbtw.interview.domain.model.ComplianceOutcome;
-
-public interface ComplianceCheckRepository {
-    void save(ComplianceOutcome outcome);
+/**
+ * Port de sortie : enregistre le résultat d'un contrôle KYC abouti.
+ *
+ * @param <C> le type métier qui représente un contrôle enregistré — à vous de le définir.
+ */
+public interface ComplianceCheckRepository<C> {
+    void save(C check);
 }

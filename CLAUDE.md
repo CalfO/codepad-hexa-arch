@@ -4,40 +4,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-The author's working copy of a 60-minute hexagonal-architecture / DDD interview exercise (see README.md, in French) for three legacy Java services. This repo holds **both** the candidate-facing exercise materials (legacy code, ports, tests) **and** a reference solution (`SOLUTION.md` + the `fr.cbtw.interview.{domain,application.port.out,infrastructure}` packages) used to evaluate candidates. When asked to change the exercise itself, keep the reference solution in sync; when asked to work on the reference solution, don't accidentally leak it into files a candidate pad would ship with (e.g. `src/legacy/`, the pre-provided ports).
+The author's evaluator repo for a 60-minute hexagonal-architecture / DDD interview exercise (legacy Java service → ports & adapters, at functional parity). It holds **both** the candidate-facing material (legacy services, ports, candidate tests, statement templates) **and** the reference solutions + evaluator-only tests. Candidates never get this repo: `tools/build-pad.sh <key> <dir> --verify` assembles a pad with one declension only (see `NOTICE.md`). Docs are in French; `README.md` / `README_EN.md` (root) are an internal overview (keep them in sync), the candidate statements are templates in `pad/`.
+
+Seven declensions: `loan`, `kyc`, `contract` (retail credit), `payment`, `sweeping`, `funds` (cash management), and `payment-senior` (senior / tech-lead, no output ports provided). Their file manifest lives in `tools/build-pad.sh` (`declinaison()`): when adding or renaming a declension, update that function, the `ALL_KEYS` list, `NOTICE.md` and `SOLUTION.md` together.
 
 ## Build & test
 
 ```
-mvn test          # compile + run all tests
-mvn clean test     # force a clean rebuild
+mvn test                                              # everything, reference solutions + evaluation tests
+tools/build-pad.sh <key> <dir> --verify               # candidate pad must compile and fail only on "no implementation"
+tools/build-pad.sh <key> <dir> --with-solution --verify   # that declension's solution alone must be green in its pad
 ```
 
-Java 21, JUnit 5.10.2, Maven Surefire. Standard Maven layout: `src/main/java`, `src/test/java`.
+Java 21, JUnit 5.10.2 (`junit-jupiter`, includes params), Maven Surefire.
 
-## Hard constraint
+## Hard constraints
 
-**Never modify files under `src/main/java/fr/cbtw/interview/legacy/`.** They are the behavioral reference — tests run against them (indirectly, via the use-case ports) and must keep passing regardless of the refactor.
+- **Never modify existing files under `src/main/java/fr/cbtw/interview/legacy/`.** They are the behavioral reference; parity tests compare candidate output to them character for character. Adding a new legacy service for a new declension is fine.
+- Candidate-facing files must not reference solution code: ports in `application/port/out/*.java` are generic (`XxxRepository<T>`) precisely so a pad compiles without `domain/`. The build script greps every pad for leaks (other declensions, `domain.`, `application.service`, `evaluation`, leftover `{{placeholders}}`).
+- Candidate parity tests deliberately avoid the legacy traps (0 % rate → NaN, `double` decimal check rejecting 19.99, sweeping `-0.0`, …). Traps go in `src/test/java/fr/cbtw/interview/evaluation/` only.
+- Each reference solution must be self-contained: `domain/<context>/` + `application/service/<Service>ApplicationService.java` (+ senior `…/paymentprocessing/` ports and adapters), no type shared across contexts.
 
-`src/test/java/fr/cbtw/interview/utils/ClasspathScanner.java` and `ImplementationLoader.java` are the exercise's test harness — not scaffolding for a candidate to complete, so a candidate pad shouldn't touch them. This repo's author, however, actively redesigns them (e.g. the package layout below was fixed by adapting the harness itself, not by contorting the reference solution around a bad harness default) — so edit them here when asked to, just don't do it incidentally while working on the exercise content.
+## The test harness
 
-## The reflection-based test harness — read before adding an implementation
+`src/test/java/fr/cbtw/interview/utils/` (`ClasspathScanner`, `ImplementationLoader`) and `HexagonalArchitectureTest` ship with every pad. A candidate pad shouldn't touch them; this repo's author redesigns them on request.
 
-`ImplementationLoader.findImplementationOf(port)` finds a candidate's use-case implementation by scanning the classpath, **non-recursively**, for a class assignable to `port` inside a literal package:
+- `ClasspathScanner` scans a package **recursively**.
+- `ImplementationLoader` looks for the single implementation of an input port under `fr.cbtw.interview.domain` **and** `fr.cbtw.interview.application`, then builds it through its richest constructor whose parameters it can resolve: `java.time.Clock` (system clock, or a fixed one via `wiring().provide(Clock.class, …)`), the unique concrete adapter under `fr.cbtw.interview.infrastructure` for any interface (built recursively), or any concrete project class. The test is the composition root: no use case needs a no-arg constructor, and none should `new` an adapter. `wiring().hasInjected(Clock.class)` / `instanceOf(Adapter.class)` let evaluation tests check the Clock bonus and what got persisted.
+- `HexagonalArchitectureTest` reads class-file bytes of `domain` + `application` classes and fails on any reference to `fr/cbtw/interview/infrastructure/` or `fr/cbtw/interview/legacy/`; it also requires at least one class under `domain` and every non-synthetic field of a `domain` class (static included) to be `final`.
 
-- default search package: `fr.cbtw.interview.domain.service`
-- `HexagonalArchitectureTest` similarly scans `fr.cbtw.interview.domain` and `fr.cbtw.interview.domain.model`
+## Reference solution conventions
 
-Any use-case implementation **must** live in `fr.cbtw.interview.domain.model` / `fr.cbtw.interview.domain.service` to be found — consistent now with the pre-provided ports (`fr.cbtw.interview.application.port.in.*`). Getting this wrong makes `ImplementationLoader` throw an `AssertionError` saying no implementation was found, which is by design — it's meant to force careful reading of the harness before implementing.
-
-Because the scan is non-recursive, `HexagonalArchitectureTest.domainMustNotDependOnInfrastructure()` (scanning bare `fr.cbtw.interview.domain`) never finds any class — everything lives one level deeper, in `domain.model`/`domain.service` — so that check passes vacuously. Known limitation of the scanner, not something either package move introduced.
-
-The loader also instantiates the found class via a **no-arg constructor** (`getDeclaredConstructor()` with no args). A use-case implementation that only takes its output port via constructor injection won't be instantiable by the harness — it needs a no-arg constructor that self-wires a default adapter (see `SOLUTION.md` for how the reference solution handles this trade-off).
-
-## Reference solution
-
-`SOLUTION.md` documents the design decisions behind the hexagonal migration under `fr.cbtw.interview.domain`, `fr.cbtw.interview.application.port.out`, and `fr.cbtw.interview.infrastructure` — package layout rationale, the no-arg-constructor trade-off, and legacy quirks preserved on purpose (e.g. a 0%-interest-rate loan simulation produces `NaN` and is still reported `APPROVED`, matching the legacy bug rather than fixing it). Six new edge-case tests (two per service) were added to the existing behavior test files, not new files, so the original tests stay untouched.
-
-## Actual vs. README paths
-
-The README describes the target layout as `src/domain/`, `src/application/port/`, `src/infrastructure/`, `src/test/`. On disk these map to Maven's `src/main/java/fr/cbtw/interview/{domain,application/port,infrastructure}` and `src/test/java/fr/cbtw/interview/...` — packages nested under the project's `fr.cbtw.interview` root, matching the pre-provided ports and the legacy package.
+Domain objects throw a context-specific `XxxRejectedException(XxxRejection)`; the application service maps the enum to the legacy's exact output string. Legacy quirks are reproduced on purpose and commented in place, with the rationale in `SOLUTION.md` (which also holds the evaluation grid and the expected senior `DECISIONS.md` answers).

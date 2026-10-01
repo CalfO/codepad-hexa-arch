@@ -1,16 +1,19 @@
 package fr.cbtw.interview.infrastructure;
 
-import fr.cbtw.interview.application.port.out.ComplianceCheckRepository;
-import fr.cbtw.interview.domain.model.ComplianceOutcome;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public final class InMemoryComplianceCheckRepository implements ComplianceCheckRepository {
-    private final List<ComplianceOutcome> savedChecks = new ArrayList<>();
+import fr.cbtw.interview.application.port.out.ComplianceCheckRepository;
+
+public final class InMemoryComplianceCheckRepository<T> implements ComplianceCheckRepository<T> {
+    private final List<T> saved = new ArrayList<>();
 
     @Override
-    public void save(ComplianceOutcome outcome) {
-        savedChecks.add(outcome);
+    public void save(T check) {
+        saved.add(check);
+    }
+
+    public List<T> saved() {
+        return List.copyOf(saved);
     }
 }
